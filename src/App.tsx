@@ -168,6 +168,22 @@ export default function App() {
     // system: no class, CSS media handles it
   }, [theme])
 
+  // Update meta theme-color to match current theme background
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
+    if (!meta) return
+    const apply = () => {
+      const color = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#0f172a'
+      meta.content = color
+    }
+    apply()
+    // Listen to system scheme changes if theme is system
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => { if (theme === 'system') apply() }
+    mq.addEventListener?.('change', onChange)
+    return () => mq.removeEventListener?.('change', onChange)
+  }, [theme])
+
   // Highly accurate tick based on target end time
   useEffect(() => {
     if (!running || paused) return
