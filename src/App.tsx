@@ -522,6 +522,7 @@ const messages = {
     tipInstall: 'Consejo: añade esta app a tu pantalla de inicio para usarla offline y mantener la pantalla activa durante tus entrenamientos.',
     showSettings: 'Mostrar ajustes',
     hideSettings: 'Ocultar ajustes',
+    intervals: 'Intervalos',
   },
   en: {
     appTitle: 'Training Timer',
@@ -560,5 +561,6 @@ const messages = {
     tipInstall: 'Tip: add this app to your home screen to use it offline and keep the screen awake during workouts.',
     showSettings: 'Show settings',
     hideSettings: 'Hide settings',
+    intervals: 'Intervals',
   },
 }
