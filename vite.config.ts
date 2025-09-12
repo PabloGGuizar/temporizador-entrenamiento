@@ -16,7 +16,8 @@ export default defineConfig({
       manifest: {
         name: 'Temporizador de Entrenamiento',
         short_name: 'Timer',
-        start_url: '/',
+        start_url: '/temporizador-entrenamiento/',
+        scope: '/temporizador-entrenamiento/',
         display: 'standalone',
         background_color: '#0f172a',
         theme_color: '#0f172a',
