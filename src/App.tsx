@@ -325,6 +325,8 @@ export default function App() {
   const [presetName, setPresetName] = useState('')
   const [selectedPresetId, setSelectedPresetId] = useState('')
   const [editingPreset, setEditingPreset] = useState(false)
+  const [presetStep, setPresetStep] = useState<'chooser' | 'editor'>('chooser')
+  const [editorMode, setEditorMode] = useState<'open' | 'new'>('new')
   const nameInUse = useMemo(() => {
     const n = presetName.trim().toLowerCase()
     if (!n) return false
@@ -566,6 +568,8 @@ export default function App() {
     setPresetName(p.name)
     setSettings(p.settings)
     setEditingPreset(true)
+    setEditorMode('open')
+    setPresetStep('editor')
   }
 
   function newPreset() {
@@ -573,6 +577,8 @@ export default function App() {
     setPresetName('')
     setSettings(defaultSettings)
     setEditingPreset(true)
+    setEditorMode('new')
+    setPresetStep('editor')
   }
 
   useEffect(() => {
@@ -645,34 +651,48 @@ export default function App() {
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <button className="pill" onClick={() => setShowSettings(false)} aria-label={t('hideSettings')} title={t('hideSettings')}>×</button>
           </div>
-          {/* Open/Create preset controls at the top */}
-          <div className="row" style={{ gap: 8, marginBottom: 8 }}>
-            <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)} aria-label={t('selectPreset')}>
-              <option value="">{t('selectPreset')}</option>
-              {presets.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <button onClick={openSelectedPreset} disabled={!selectedPresetId} aria-label={t('openPreset')} title={t('openPreset')}>
-              <Icon name="open" />
-            </button>
-            <button onClick={newPreset} aria-label={t('newPreset')} title={t('newPreset')}>
-              <Icon name="plus" />
-            </button>
-          </div>
-          <div className="row" style={{ gap: 8, marginBottom: 8 }}>
-            <input
-              style={{ flex: 1 }}
-              placeholder={t('presetNamePlaceholder')}
-              value={presetName}
-              onChange={e => setPresetName(e.target.value)}
-              aria-label={t('presetNamePlaceholder')}
-            />
-            <button className="primary" onClick={() => (editingPreset && selectedPresetId ? saveEditPreset() : savePreset())} disabled={!presetName.trim() || nameInUse} aria-label={t('savePreset')} title={nameInUse ? t('nameInUse') : t('savePreset')}>
-              <Icon name="save" />
-            </button>
-          </div>
-          <Section title={t('settings')} subtitle={t('settingsSubtitle')} />
+          {/* Presets 2-step flow */}
+          {presetStep === 'chooser' ? (
+            <div className="grid" style={{ gap: 12 }}>
+              <Section title={t('presets')} subtitle={t('chooseAction')} />
+              <div className="row" style={{ gap: 8 }}>
+                <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)} aria-label={t('selectPreset')}>
+                  <option value="">{t('selectPreset')}</option>
+                  {presets.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <button onClick={openSelectedPreset} disabled={!selectedPresetId} className="primary" aria-label={t('openPreset')} title={t('openPreset')}>
+                  <Icon name="open" />
+                </button>
+                <button onClick={newPreset} aria-label={t('newPreset')} title={t('newPreset')}>
+                  <Icon name="plus" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+                <button className="pill" onClick={() => setPresetStep('chooser')} aria-label={t('back')} title={t('back')}>
+                  <Icon name="prev" />
+                </button>
+                <div className="subtle">{editorMode === 'new' ? t('newPreset') : t('openPreset')}</div>
+              </div>
+              <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+                <input
+                  style={{ flex: 1 }}
+                  placeholder={t('presetNamePlaceholder')}
+                  value={presetName}
+                  onChange={e => setPresetName(e.target.value)}
+                  aria-label={t('presetNamePlaceholder')}
+                />
+                <button className="primary" onClick={() => (editingPreset && selectedPresetId && editorMode === 'open' ? saveEditPreset() : savePreset())} disabled={!presetName.trim() || nameInUse} aria-label={t('savePreset')} title={nameInUse ? t('nameInUse') : t('savePreset')}>
+                  <Icon name="save" />
+                </button>
+              </div>
+              <Section title={t('settings')} subtitle={t('settingsSubtitle')} />
+            </>
+          )}
           <div className="grid cols">
             <TimeInput label={t('warmup')} value={settings.warmupSec} onChange={v => setSettings(s => ({ ...s, warmupSec: v }))} />
             <NumberInput label={t('intervals')} min={1} max={50} value={settings.intervals} onChange={v => setSettings(s => ({ ...s, intervals: v }))} />
@@ -699,8 +719,13 @@ export default function App() {
             </div>
             {/* Idioma: oculto por ahora */}
             <Section title={t('presets')} />
-            {presets.length > 0 && (
+            {presetStep === 'editor' && editorMode === 'open' && presets.length > 0 && (
               <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)} aria-label={t('selectPreset')}>
+                  {presets.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
                 <button className="danger" onClick={deletePreset} disabled={!selectedPresetId} aria-label={t('delete')} title={t('delete')}>
                   <Icon name="trash" />
                 </button>
@@ -892,12 +917,14 @@ const messages = {
     hideSettings: 'Ocultar ajustes',
     intervals: 'Intervalos',
     presets: 'Rutinas',
+    chooseAction: 'Elige abrir una rutina o crear una nueva',
     presetNamePlaceholder: 'Ej. HIIT 8x40/20',
     savePreset: 'Guardar rutina',
     nameInUse: 'Nombre ya utilizado',
     selectPreset: 'Seleccionar rutina',
     openPreset: 'Abrir rutina',
     newPreset: 'Nueva rutina',
+    back: 'Volver',
     apply: 'Aplicar',
     delete: 'Eliminar',
     rename: 'Renombrar',
@@ -942,12 +969,14 @@ const messages = {
     hideSettings: 'Hide settings',
     intervals: 'Intervals',
     presets: 'Routines',
+    chooseAction: 'Choose to open a routine or create a new one',
     presetNamePlaceholder: 'e.g., HIIT 8x40/20',
     savePreset: 'Save routine',
     nameInUse: 'Name already used',
     selectPreset: 'Select routine',
     openPreset: 'Open routine',
     newPreset: 'New routine',
+    back: 'Back',
     apply: 'Apply',
     delete: 'Delete',
     rename: 'Rename',
