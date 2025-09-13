@@ -483,7 +483,25 @@ export default function App() {
     if (!selectedPresetId) return
     setPresets(list => list.filter(p => p.id !== selectedPresetId))
     setSelectedPresetId('')
+    setPresetName('')
   }
+
+  function renamePreset() {
+    const name = presetName.trim()
+    if (!name || !selectedPresetId) return
+    setPresets(list => list.map(p => p.id === selectedPresetId ? { ...p, name } : p))
+  }
+
+  function updatePresetSettings() {
+    if (!selectedPresetId) return
+    setPresets(list => list.map(p => p.id === selectedPresetId ? { ...p, settings } : p))
+  }
+
+  useEffect(() => {
+    // Prefill name input when selecting a preset
+    const p = presets.find(x => x.id === selectedPresetId)
+    setPresetName(p?.name ?? '')
+  }, [selectedPresetId, presets])
 
   return (
     <div className="container">
@@ -586,14 +604,16 @@ export default function App() {
               <button className="primary" onClick={savePreset} disabled={!presetName.trim()}>{t('savePreset')}</button>
             </div>
             {presets.length > 0 && (
-              <div className="row">
-                <select style={{ flex: 1 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)}>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)}>
                   <option value="">{t('selectPreset')}</option>
                   {presets.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
                 <button onClick={applyPreset} disabled={!selectedPresetId}>{t('apply')}</button>
+                <button onClick={renamePreset} disabled={!selectedPresetId || !presetName.trim()}>{t('rename')}</button>
+                <button onClick={updatePresetSettings} disabled={!selectedPresetId}>{t('update')}</button>
                 <button className="danger" onClick={deletePreset} disabled={!selectedPresetId}>{t('delete')}</button>
               </div>
             )}
@@ -788,6 +808,8 @@ const messages = {
     selectPreset: 'Seleccionar rutina',
     apply: 'Aplicar',
     delete: 'Eliminar',
+    rename: 'Renombrar',
+    update: 'Actualizar',
   },
   en: {
     appTitle: 'Training Timer',
@@ -833,6 +855,8 @@ const messages = {
     selectPreset: 'Select routine',
     apply: 'Apply',
     delete: 'Delete',
+    rename: 'Rename',
+    update: 'Update',
   },
 }
 
