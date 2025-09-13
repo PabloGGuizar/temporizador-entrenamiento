@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 // Minimal inline SVG icon set for buttons
-function Icon({ name, size = 18 }: { name: 'settings' | 'play' | 'pause' | 'next' | 'prev' | 'reset' | 'sun' | 'dumbbell' | 'moon' | 'snowflake'; size?: number }) {
+function Icon({ name, size = 18 }: { name: 'settings' | 'play' | 'pause' | 'next' | 'prev' | 'reset' | 'sun' | 'dumbbell' | 'moon' | 'snowflake' | 'save' | 'edit' | 'trash' | 'apply'; size?: number }) {
   const common = {
     width: size,
     height: size,
@@ -95,6 +95,39 @@ function Icon({ name, size = 18 }: { name: 'settings' | 'play' | 'pause' | 'next
           <line x1="2" y1="12" x2="22" y2="12" />
           <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" />
           <line x1="19.5" y1="4.5" x2="4.5" y2="19.5" />
+        </svg>
+      )
+    case 'save':
+      return (
+        <svg {...common}>
+          <path d="M5 21h14a2 2 0 0 0 2-2V7.5L16.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2Z" />
+          <polyline points="7 21 7 14 17 14 17 21" />
+          <rect x="7" y="5" width="7" height="4" />
+        </svg>
+      )
+    case 'edit':
+      return (
+        <svg {...common}>
+          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Z" />
+          <path d="M14.06 6.19 16.88 3.37 20.63 7.12 17.81 9.94 14.06 6.19Z" />
+        </svg>
+      )
+    case 'trash':
+      return (
+        <svg {...common}>
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+          <line x1="10" y1="11" x2="10" y2="19" />
+          <line x1="14" y1="11" x2="14" y2="19" />
+          <rect x="9" y="2" width="6" height="3" />
+        </svg>
+      )
+    case 'apply':
+      return (
+        <svg {...common}>
+          <path d="M12 3v12" />
+          <polyline points="8 11 12 15 16 11" />
+          <rect x="4" y="15" width="16" height="6" />
         </svg>
       )
   }
@@ -277,6 +310,7 @@ export default function App() {
   const [presets, setPresets] = useLocalStorage<Preset[]>('presets', [])
   const [presetName, setPresetName] = useState('')
   const [selectedPresetId, setSelectedPresetId] = useState('')
+  const [editingPreset, setEditingPreset] = useState(false)
 
   // Use beeps always on; select preset per phase below
   const { beep, preview } = useBeep('beep', true)
@@ -484,17 +518,24 @@ export default function App() {
     setPresets(list => list.filter(p => p.id !== selectedPresetId))
     setSelectedPresetId('')
     setPresetName('')
+    setEditingPreset(false)
   }
 
-  function renamePreset() {
-    const name = presetName.trim()
-    if (!name || !selectedPresetId) return
-    setPresets(list => list.map(p => p.id === selectedPresetId ? { ...p, name } : p))
-  }
-
-  function updatePresetSettings() {
+  function startEditPreset() {
     if (!selectedPresetId) return
-    setPresets(list => list.map(p => p.id === selectedPresetId ? { ...p, settings } : p))
+    const p = presets.find(x => x.id === selectedPresetId)
+    if (!p) return
+    setPresetName(p.name)
+    setSettings(p.settings)
+    setEditingPreset(true)
+  }
+
+  function saveEditPreset() {
+    if (!selectedPresetId) return
+    const name = presetName.trim()
+    if (!name) return
+    setPresets(list => list.map(p => p.id === selectedPresetId ? { ...p, name, settings } : p))
+    setEditingPreset(false)
   }
 
   useEffect(() => {
@@ -567,6 +608,18 @@ export default function App() {
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <button className="pill" onClick={() => setShowSettings(false)} aria-label={t('hideSettings')} title={t('hideSettings')}>×</button>
           </div>
+          <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+            <input
+              style={{ flex: 1 }}
+              placeholder={t('presetNamePlaceholder')}
+              value={presetName}
+              onChange={e => setPresetName(e.target.value)}
+              aria-label={t('presetNamePlaceholder')}
+            />
+            <button className="primary" onClick={savePreset} disabled={!presetName.trim()} aria-label={t('savePreset')} title={t('savePreset')}>
+              <Icon name="save" />
+            </button>
+          </div>
           <Section title={t('settings')} subtitle={t('settingsSubtitle')} />
           <div className="grid cols">
             <TimeInput label={t('warmup')} value={settings.warmupSec} onChange={v => setSettings(s => ({ ...s, warmupSec: v }))} />
@@ -594,15 +647,6 @@ export default function App() {
             </div>
             {/* Idioma: oculto por ahora */}
             <Section title={t('presets')} />
-            <div className="row">
-              <input
-                style={{ flex: 1 }}
-                placeholder={t('presetNamePlaceholder')}
-                value={presetName}
-                onChange={e => setPresetName(e.target.value)}
-              />
-              <button className="primary" onClick={savePreset} disabled={!presetName.trim()}>{t('savePreset')}</button>
-            </div>
             {presets.length > 0 && (
               <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
                 <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)}>
@@ -611,10 +655,18 @@ export default function App() {
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
-                <button onClick={applyPreset} disabled={!selectedPresetId}>{t('apply')}</button>
-                <button onClick={renamePreset} disabled={!selectedPresetId || !presetName.trim()}>{t('rename')}</button>
-                <button onClick={updatePresetSettings} disabled={!selectedPresetId}>{t('update')}</button>
-                <button className="danger" onClick={deletePreset} disabled={!selectedPresetId}>{t('delete')}</button>
+                <button onClick={applyPreset} disabled={!selectedPresetId} aria-label={t('apply')} title={t('apply')}>
+                  <Icon name="apply" />
+                </button>
+                <button onClick={startEditPreset} disabled={!selectedPresetId} aria-label={t('rename')} title={t('rename')}>
+                  <Icon name="edit" />
+                </button>
+                <button onClick={saveEditPreset} disabled={!selectedPresetId || !editingPreset || !presetName.trim()} aria-label={t('update')} title={t('update')}>
+                  <Icon name="save" />
+                </button>
+                <button className="danger" onClick={deletePreset} disabled={!selectedPresetId} aria-label={t('delete')} title={t('delete')}>
+                  <Icon name="trash" />
+                </button>
               </div>
             )}
           </div>
