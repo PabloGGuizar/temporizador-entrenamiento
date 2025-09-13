@@ -531,11 +531,23 @@ export default function App() {
     setSelectedPresetId(newPreset.id)
     setEditingPreset(false)
   }
-  function applyPreset() {
-    const p = presets.find(p => p.id === selectedPresetId)
-    if (!p) return
-    setSettings(p.settings)
-  }
+    function applyPreset() {
+      const p = presets.find(p => p.id === selectedPresetId)
+      if (!p) return
+      // Load settings only; do not auto-start
+      setRunning(null)
+      setPaused(false)
+      setSettings(p.settings)
+    }
+
+    function applyPresetById(id: string) {
+      const p = presets.find(x => x.id === id)
+      if (!p) return
+      // Load settings only; do not auto-start
+      setRunning(null)
+      setPaused(false)
+      setSettings(p.settings)
+    }
   function deletePreset() {
     if (!selectedPresetId) return
     setPresets(list => list.filter(p => p.id !== selectedPresetId))
@@ -688,6 +700,9 @@ export default function App() {
                         <div className="subtle" style={{ fontSize: 12 }}>{presetSummary(p)}</div>
                       </div>
                       <div className="row">
+                        <button onClick={() => applyPresetById(p.id)} aria-label={t('apply')} title={t('apply')}>
+                          <Icon name="apply" />
+                        </button>
                         <button className="primary" onClick={() => openPresetById(p.id)} aria-label={t('openPreset')} title={t('openPreset')}>
                           <Icon name="open" />
                         </button>
