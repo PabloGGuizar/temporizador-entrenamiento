@@ -74,6 +74,17 @@ button.danger{background:var(--danger)}
 button:disabled{opacity:.5;cursor:not-allowed}
 
 .timer{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px 12px}
+.stage-icon{margin:8px 0}
+.stage-icon img{display:block; height:96px; width:auto; object-fit:contain;}
+.timer.phase{border-radius:12px}
+.timer.phase.warmup{background:#16a34a;color:#fff}
+.timer.phase.work{background:#dc2626;color:#fff}
+.timer.phase.rest{background:#f59e0b;color:#1f1300}
+.timer.phase.cooldown{background:#2563eb;color:#fff}
+.timer.phase .phase,.timer.phase .subtle{color:rgba(255,255,255,.85)}
+.timer.phase.rest .phase,.timer.phase.rest .subtle{color:#3a2a00}
+.timer.phase .progress{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.28)}
+.timer.phase.rest .progress{background:rgba(0,0,0,.1);border-color:rgba(0,0,0,.15)}
 .phase{font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 .time{font-variant-numeric:tabular-nums;font-size:64px;line-height:1;margin:8px 0 4px}
 .progress{height:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:999px;overflow:hidden}
@@ -90,3 +101,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
 @media (min-width:720px){
   .time{font-size:96px}
 }
+
+/* Settings overlay on small screens */
+@media (max-width:720px){
+  .settings-panel{position:fixed;inset:0;z-index:50;border-radius:0;margin:0;overflow:auto}
+}
+
+/* Generic overlay for end-of-routine */
+.overlay{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.overlay .card{max-width:520px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.overlay .hero{display:flex;flex-direction:column;align-items:center;text-align:center}
+.overlay .hero img{display:block;max-width:240px;width:100%;height:auto}

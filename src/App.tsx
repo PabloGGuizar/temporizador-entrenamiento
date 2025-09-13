@@ -1,5 +1,105 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+// Minimal inline SVG icon set for buttons
+function Icon({ name, size = 18 }: { name: 'settings' | 'play' | 'pause' | 'next' | 'prev' | 'reset' | 'sun' | 'dumbbell' | 'moon' | 'snowflake'; size?: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  }
+  switch (name) {
+    case 'settings':
+      // Use a simple sliders icon for crisp rendering at small sizes
+      return (
+        <svg {...common}>
+          <line x1="4" y1="6" x2="20" y2="6" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="18" x2="20" y2="18" />
+          <circle cx="8" cy="6" r="2" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="12" r="2" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="18" r="2" fill="currentColor" stroke="none" />
+        </svg>
+      )
+    case 'play':
+      return (
+        <svg {...common}>
+          <polygon points="8,6 8,18 18,12" fill="currentColor" stroke="none" />
+        </svg>
+      )
+    case 'pause':
+      return (
+        <svg {...common}>
+          <rect x="7" y="5" width="4" height="14" fill="currentColor" stroke="none" />
+          <rect x="13" y="5" width="4" height="14" fill="currentColor" stroke="none" />
+        </svg>
+      )
+    case 'next':
+      return (
+        <svg {...common}>
+          <polygon points="6,6 6,18 14,12" fill="currentColor" stroke="none" />
+          <rect x="16" y="6" width="2" height="12" fill="currentColor" stroke="none" />
+        </svg>
+      )
+    case 'prev':
+      return (
+        <svg {...common}>
+          <polygon points="18,6 18,18 10,12" fill="currentColor" stroke="none" />
+          <rect x="6" y="6" width="2" height="12" fill="currentColor" stroke="none" />
+        </svg>
+      )
+    case 'reset':
+      return (
+        <svg {...common}>
+          <path d="M21 12a9 9 0 1 1-3.2-6.9" />
+          <polyline points="21 3 21 9 15 9" />
+        </svg>
+      )
+    case 'sun':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="4" />
+          <line x1="12" y1="2" x2="12" y2="5" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+          <line x1="2" y1="12" x2="5" y2="12" />
+          <line x1="19" y1="12" x2="22" y2="12" />
+          <line x1="4.2" y1="4.2" x2="6.4" y2="6.4" />
+          <line x1="17.6" y1="17.6" x2="19.8" y2="19.8" />
+          <line x1="4.2" y1="19.8" x2="6.4" y2="17.6" />
+          <line x1="17.6" y1="6.4" x2="19.8" y2="4.2" />
+        </svg>
+      )
+    case 'dumbbell':
+      return (
+        <svg {...common}>
+          <rect x="3" y="9" width="3" height="6" />
+          <rect x="18" y="9" width="3" height="6" />
+          <rect x="7" y="11" width="10" height="2" />
+        </svg>
+      )
+    case 'moon':
+      return (
+        <svg {...common}>
+          <path d="M21 12.5A8.5 8.5 0 1 1 11.5 3a6.5 6.5 0 0 0 9.5 9.5Z" />
+        </svg>
+      )
+    case 'snowflake':
+      return (
+        <svg {...common}>
+          <line x1="12" y1="2" x2="12" y2="22" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" />
+          <line x1="19.5" y1="4.5" x2="4.5" y2="19.5" />
+        </svg>
+      )
+  }
+}
+
 type Phase = 'idle' | 'warmup' | 'work' | 'rest' | 'cooldown' | 'done'
 
 type Settings = {
@@ -32,7 +132,16 @@ function useLocalStorage<T>(key: string, initial: T) {
     }
   })
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
+    // Defer storage write to idle time to avoid blocking click handlers
+    const w = window as any
+    const write = () => { try { localStorage.setItem(key, JSON.stringify(value)) } catch {} }
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(write, { timeout: 500 })
+      return () => { try { w.cancelIdleCallback?.(id) } catch {} }
+    } else {
+      const id = setTimeout(write, 0)
+      return () => clearTimeout(id)
+    }
   }, [key, value])
   return [value, setValue] as const
 }
@@ -62,10 +171,14 @@ function useBeep(preset: Settings['sound'], enabled: boolean) {
       o.frequency.value = freq
       g.gain.value = 0.0001
       o.connect(g).connect(ctx.destination)
-      g.gain.exponentialRampToValueAtTime(gainPeak, now + attack)
-      g.gain.exponentialRampToValueAtTime(0.00001, now + dur - release)
-      o.start(now)
-      o.stop(now + dur)
+      const startAt = now
+      const peakAt = startAt + Math.max(0.005, attack)
+      const endAt = startAt + Math.max(0.02, dur)
+      const releaseStart = Math.max(peakAt + 0.005, endAt - Math.max(0.01, release))
+      g.gain.exponentialRampToValueAtTime(gainPeak, peakAt)
+      g.gain.exponentialRampToValueAtTime(0.00001, releaseStart)
+      o.start(startAt)
+      o.stop(endAt)
     }
     const playNoiseClick = (dur = 0.04) => {
       const bufferSize = Math.floor(ctx.sampleRate * dur)
@@ -156,7 +269,45 @@ export default function App() {
   const [lang, setLang] = useLocalStorage<'en' | 'es'>('ui.lang', sysLang)
   const [theme, setTheme] = useLocalStorage<'system' | 'light' | 'dark'>('ui.theme', 'system')
 
-  const { beep, preview } = useBeep(settings.sound, settings.sound !== 'none')
+  // Use beeps always on; select preset per phase below
+  const { beep, preview } = useBeep('beep', true)
+
+  // Play user-provided phase audios from public/ over beeps
+  function usePhaseAudio() {
+    const cacheRef = useRef<Record<Phase | 'done', HTMLAudioElement | undefined>>({
+      idle: undefined,
+      warmup: undefined,
+      work: undefined,
+      rest: undefined,
+      cooldown: undefined,
+      done: undefined,
+    })
+    useEffect(() => {
+      const base = (import.meta as any).env.BASE_URL || '/'
+      const sources: Partial<Record<Phase | 'done', string>> = {
+        warmup: 'calentamiento.mp3',
+        work: 'intenso.mp3',
+        rest: 'relajado.mp3',
+        cooldown: 'enfriamiento.mp3',
+        done: 'final.mp3',
+      }
+      Object.entries(sources).forEach(([key, file]) => {
+        try {
+          const audio = new Audio(base + file)
+          audio.preload = 'auto'
+          cacheRef.current[key as keyof typeof cacheRef.current] = audio
+        } catch {}
+      })
+    }, [])
+    const play = (phase: Phase | 'done') => {
+      const a = cacheRef.current[phase]
+      if (!a) return
+      try { a.currentTime = 0 } catch {}
+      a.play()?.catch?.(() => {})
+    }
+    return { play }
+  }
+  const phaseAudio = usePhaseAudio()
   useWakeLock(!!running && !paused)
 
   // Apply theme class to <html>
@@ -224,8 +375,31 @@ export default function App() {
 
   function notifyPhase(phase: Phase) {
     if (settings.vibrate) requestVibrate(phase === 'rest' ? 150 : 300)
-    if (phase === 'work') beep('long')
-    else if (phase === 'rest' || phase === 'warmup' || phase === 'cooldown') beep('short')
+    // Choose different beep style per phase
+    switch (phase) {
+      case 'warmup':
+        preview('chime', 'short')
+        phaseAudio.play('warmup')
+        break
+      case 'work':
+        preview('triple', 'long')
+        phaseAudio.play('work')
+        break
+      case 'rest':
+        preview('click', 'short')
+        phaseAudio.play('rest')
+        break
+      case 'cooldown':
+        preview('wood', 'short')
+        phaseAudio.play('cooldown')
+        break
+      case 'done':
+        // Play final audio at the end of the routine
+        phaseAudio.play('done')
+        break
+      default:
+        break
+    }
   }
 
   function start() {
@@ -286,7 +460,13 @@ export default function App() {
       <div className="header">
         <div className="title">{t('appTitle')}</div>
         <div className="row" style={{ gap: 8 }}>
-          <button onClick={() => setShowSettings(s => !s)}>{showSettings ? t('hideSettings') : t('showSettings')}</button>
+          <button
+            onClick={() => setShowSettings(s => !s)}
+            aria-label={showSettings ? t('hideSettings') : t('showSettings')}
+            title={showSettings ? t('hideSettings') : t('showSettings')}
+          >
+            <Icon name="settings" />
+          </button>
         </div>
       </div>
 
@@ -294,24 +474,51 @@ export default function App() {
         <div className="card">
           <div className={`timer phase ${phaseClass}`}>
             <div className="phase">{showPhase} {intervalsInfo && <span>• {intervalsInfo}</span>}</div>
+            <div className="stage-icon" aria-hidden>
+              {running?.phase === 'warmup' && <img src={`${import.meta.env.BASE_URL}calentamiento.png`} alt="" />}
+              {running?.phase === 'work' && <img src={`${import.meta.env.BASE_URL}intenso.png`} alt="" />}
+              {running?.phase === 'rest' && <img src={`${import.meta.env.BASE_URL}relajado.png`} alt="" />}
+              {running?.phase === 'cooldown' && <img src={`${import.meta.env.BASE_URL}enfriamiento.png`} alt="" />}
+            </div>
             <div className="time">{shownTime}</div>
             <div className="progress" aria-hidden>
               <div className="bar" style={{ width: `${Math.round(progress * 100)}%` }} />
             </div>
 
             <div className="actions" style={{ marginTop: 16 }}>
-              {!running && <button className="primary" onClick={start}>{t('start')}</button>}
-              {running && <button className="primary" onClick={pauseResume}>{paused ? t('resume') : t('pause')}</button>}
-              {running && <button className="warn" onClick={skip}>{t('next')}</button>}
-              {running && <button onClick={back}>{t('previous')}</button>}
-              <button className="danger" onClick={reset} disabled={!running}>{t('reset')}</button>
+              {!running && (
+                <button className="primary" onClick={start} aria-label={t('start')} title={t('start')}>
+                  <Icon name="play" />
+                </button>
+              )}
+              {running && (
+                <button className="primary" onClick={pauseResume} aria-label={paused ? t('resume') : t('pause')} title={paused ? t('resume') : t('pause')}>
+                  {paused ? <Icon name="play" /> : <Icon name="pause" />}
+                </button>
+              )}
+              {running && (
+                <button className="warn" onClick={skip} aria-label={t('next')} title={t('next')}>
+                  <Icon name="next" />
+                </button>
+              )}
+              {running && (
+                <button onClick={back} aria-label={t('previous')} title={t('previous')}>
+                  <Icon name="prev" />
+                </button>
+              )}
+              <button className="danger" onClick={reset} disabled={!running} aria-label={t('reset')} title={t('reset')}>
+                <Icon name="reset" />
+              </button>
             </div>
             <div className="subtle" style={{ marginTop: 8 }}>{t('totalEstimated')}: {fmt(totalDuration(settings))}</div>
           </div>
         </div>
 
         {showSettings && (
-        <div className="card">
+        <div className="card settings-panel" role="dialog" aria-modal="true">
+          <div className="row" style={{ justifyContent: 'flex-end' }}>
+            <button className="pill" onClick={() => setShowSettings(false)} aria-label={t('hideSettings')} title={t('hideSettings')}>×</button>
+          </div>
           <Section title={t('settings')} subtitle={t('settingsSubtitle')} />
           <div className="grid cols">
             <TimeInput label={t('warmup')} value={settings.warmupSec} onChange={v => setSettings(s => ({ ...s, warmupSec: v }))} />
@@ -322,17 +529,6 @@ export default function App() {
           </div>
 
           <div className="grid" style={{ marginTop: 8 }}>
-            <div className="row">
-              <label style={{ width: 140 }}>{t('alertTone')}</label>
-              <select value={settings.sound} onChange={e => { const val = e.target.value as Settings['sound']; setSettings(s => ({ ...s, sound: val })); preview(val, 'short') }}>
-                <option value="none">{t('silent')}</option>
-                <option value="beep">{t('toneBeep')}</option>
-                <option value="chime">{t('toneChime')}</option>
-                <option value="click">{t('toneClick')}</option>
-                <option value="wood">{t('toneWood')}</option>
-                <option value="triple">{t('toneTriple')}</option>
-              </select>
-            </div>
             <div className="row">
               <label style={{ width: 140 }}>{t('vibration')}</label>
               <select value={settings.vibrate ? 'on' : 'off'} onChange={e => setSettings(s => ({ ...s, vibrate: e.target.value === 'on' }))}>
@@ -348,17 +544,28 @@ export default function App() {
                 <option value="dark">{t('themeDark')}</option>
               </select>
             </div>
-            <div className="row">
-              <label style={{ width: 140 }}>{t('language')}</label>
-              <select value={lang} onChange={e => setLang(e.target.value as 'en' | 'es')}>
-                <option value="es">Español</option>
-                <option value="en">English</option>
-              </select>
-            </div>
+            {/* Idioma: oculto por ahora */}
           </div>
         </div>
         )}
       </div>
+
+      {/* Congrats overlay when done */}
+      {running?.phase === 'done' && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Rutina completada">
+          <div className="card">
+            <div className="hero">
+              <img src={`${import.meta.env.BASE_URL}relajado.png`} alt="" />
+              <h2 style={{ margin: '12px 0 4px' }}>{t('done')}</h2>
+              <div className="subtle">{t('ready')}</div>
+              <div className="row" style={{ marginTop: 12 }}>
+                <button className="danger" onClick={reset}>{t('reset')}</button>
+                <button className="primary" onClick={start}>{t('start')}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="subtle" style={{ marginTop: 12 }}>
         {t('tipInstall')}
@@ -489,8 +696,8 @@ const messages = {
     appTitle: 'Temporizador de Entrenamiento',
     ready: 'Listo',
     warmup: 'Calentamiento',
-    work: 'Trabajo',
-    rest: 'Descanso',
+    work: 'Intenso',
+    rest: 'Relajado',
     cooldown: 'Enfriamiento',
     done: 'Completado',
     start: 'Iniciar',
@@ -528,8 +735,8 @@ const messages = {
     appTitle: 'Training Timer',
     ready: 'Ready',
     warmup: 'Warm-up',
-    work: 'Work',
-    rest: 'Rest',
+    work: 'Intense',
+    rest: 'Relax',
     cooldown: 'Cooldown',
     done: 'Completed',
     start: 'Start',
