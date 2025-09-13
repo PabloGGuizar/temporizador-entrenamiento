@@ -693,45 +693,48 @@ export default function App() {
               <Section title={t('settings')} subtitle={t('settingsSubtitle')} />
             </>
           )}
-          <div className="grid cols">
-            <TimeInput label={t('warmup')} value={settings.warmupSec} onChange={v => setSettings(s => ({ ...s, warmupSec: v }))} />
-            <NumberInput label={t('intervals')} min={1} max={50} value={settings.intervals} onChange={v => setSettings(s => ({ ...s, intervals: v }))} />
-            <TimeInput label={t('work')} value={settings.workSec} onChange={v => setSettings(s => ({ ...s, workSec: v }))} />
-            <TimeInput label={t('rest')} value={settings.restSec} onChange={v => setSettings(s => ({ ...s, restSec: v }))} />
-            <TimeInput label={t('cooldown')} value={settings.cooldownSec} onChange={v => setSettings(s => ({ ...s, cooldownSec: v }))} />
-          </div>
-
-          <div className="grid" style={{ marginTop: 8 }}>
-            <div className="row">
-              <label style={{ width: 140 }}>{t('vibration')}</label>
-              <select value={settings.vibrate ? 'on' : 'off'} onChange={e => setSettings(s => ({ ...s, vibrate: e.target.value === 'on' }))}>
-                <option value="on">{t('on')}</option>
-                <option value="off">{t('off')}</option>
-              </select>
-            </div>
-            <div className="row">
-              <label style={{ width: 140 }}>{t('theme')}</label>
-              <select value={theme} onChange={e => setTheme(e.target.value as 'system' | 'light' | 'dark')}>
-                <option value="system">{t('themeSystem')}</option>
-                <option value="light">{t('themeLight')}</option>
-                <option value="dark">{t('themeDark')}</option>
-              </select>
-            </div>
-            {/* Idioma: oculto por ahora */}
-            <Section title={t('presets')} />
-            {presetStep === 'editor' && editorMode === 'open' && presets.length > 0 && (
-              <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-                <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)} aria-label={t('selectPreset')}>
-                  {presets.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-                <button className="danger" onClick={deletePreset} disabled={!selectedPresetId} aria-label={t('delete')} title={t('delete')}>
-                  <Icon name="trash" />
-                </button>
+          {presetStep === 'editor' && (
+            <>
+              <div className="grid cols">
+                <TimeInput label={t('warmup')} value={settings.warmupSec} onChange={v => setSettings(s => ({ ...s, warmupSec: v }))} />
+                <NumberInput label={t('intervals')} min={1} max={50} value={settings.intervals} onChange={v => setSettings(s => ({ ...s, intervals: v }))} />
+                <TimeInput label={t('work')} value={settings.workSec} onChange={v => setSettings(s => ({ ...s, workSec: v }))} />
+                <TimeInput label={t('rest')} value={settings.restSec} onChange={v => setSettings(s => ({ ...s, restSec: v }))} />
+                <TimeInput label={t('cooldown')} value={settings.cooldownSec} onChange={v => setSettings(s => ({ ...s, cooldownSec: v }))} />
               </div>
-            )}
-          </div>
+
+              <div className="grid" style={{ marginTop: 8 }}>
+                <div className="row">
+                  <label style={{ width: 140 }}>{t('vibration')}</label>
+                  <select value={settings.vibrate ? 'on' : 'off'} onChange={e => setSettings(s => ({ ...s, vibrate: e.target.value === 'on' }))}>
+                    <option value="on">{t('on')}</option>
+                    <option value="off">{t('off')}</option>
+                  </select>
+                </div>
+                <div className="row">
+                  <label style={{ width: 140 }}>{t('theme')}</label>
+                  <select value={theme} onChange={e => setTheme(e.target.value as 'system' | 'light' | 'dark')}>
+                    <option value="system">{t('themeSystem')}</option>
+                    <option value="light">{t('themeLight')}</option>
+                    <option value="dark">{t('themeDark')}</option>
+                  </select>
+                </div>
+                {/* Idioma: oculto por ahora */}
+                {editorMode === 'open' && presets.length > 0 && (
+                  <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                    <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)} aria-label={t('selectPreset')}>
+                      {presets.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <button className="danger" onClick={deletePreset} disabled={!selectedPresetId} aria-label={t('delete')} title={t('delete')}>
+                      <Icon name="trash" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
         )}
       </div>
