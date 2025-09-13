@@ -112,6 +112,12 @@ type Settings = {
   vibrate: boolean
 }
 
+type Preset = {
+  id: string
+  name: string
+  settings: Settings
+}
+
 const defaultSettings: Settings = {
   warmupSec: 60,
   workSec: 40,
@@ -268,6 +274,9 @@ export default function App() {
   const sysLang = (navigator.language || 'en').toLowerCase().startsWith('es') ? 'es' : 'en'
   const [lang, setLang] = useLocalStorage<'en' | 'es'>('ui.lang', sysLang)
   const [theme, setTheme] = useLocalStorage<'system' | 'light' | 'dark'>('ui.theme', 'system')
+  const [presets, setPresets] = useLocalStorage<Preset[]>('presets', [])
+  const [presetName, setPresetName] = useState('')
+  const [selectedPresetId, setSelectedPresetId] = useState('')
 
   // Use beeps always on; select preset per phase below
   const { beep, preview } = useBeep('beep', true)
@@ -455,6 +464,27 @@ export default function App() {
     ? `${running.intervalIndex + 1}/${settings.intervals}`
     : ''
 
+  // Presets helpers
+  function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}` }
+  function savePreset() {
+    const name = presetName.trim()
+    if (!name) return
+    const newPreset: Preset = { id: makeId(), name, settings }
+    setPresets(list => [newPreset, ...list])
+    setPresetName('')
+    setSelectedPresetId(newPreset.id)
+  }
+  function applyPreset() {
+    const p = presets.find(p => p.id === selectedPresetId)
+    if (!p) return
+    setSettings(p.settings)
+  }
+  function deletePreset() {
+    if (!selectedPresetId) return
+    setPresets(list => list.filter(p => p.id !== selectedPresetId))
+    setSelectedPresetId('')
+  }
+
   return (
     <div className="container">
       <div className="header">
@@ -545,6 +575,28 @@ export default function App() {
               </select>
             </div>
             {/* Idioma: oculto por ahora */}
+            <Section title={t('presets')} />
+            <div className="row">
+              <input
+                style={{ flex: 1 }}
+                placeholder={t('presetNamePlaceholder')}
+                value={presetName}
+                onChange={e => setPresetName(e.target.value)}
+              />
+              <button className="primary" onClick={savePreset} disabled={!presetName.trim()}>{t('savePreset')}</button>
+            </div>
+            {presets.length > 0 && (
+              <div className="row">
+                <select style={{ flex: 1 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)}>
+                  <option value="">{t('selectPreset')}</option>
+                  {presets.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <button onClick={applyPreset} disabled={!selectedPresetId}>{t('apply')}</button>
+                <button className="danger" onClick={deletePreset} disabled={!selectedPresetId}>{t('delete')}</button>
+              </div>
+            )}
           </div>
         </div>
         )}
@@ -718,7 +770,7 @@ const messages = {
     toneClick: 'Clic',
     toneWood: 'Madera',
     toneTriple: 'Triple beep',
-    vibration: 'Vibración',
+    vibration: 'Vibraciónn',
     on: 'Activada',
     off: 'Desactivada',
     theme: 'Tema',
@@ -730,6 +782,12 @@ const messages = {
     showSettings: 'Mostrar ajustes',
     hideSettings: 'Ocultar ajustes',
     intervals: 'Intervalos',
+    presets: 'Rutinas',
+    presetNamePlaceholder: 'Ej. HIIT 8x40/20',
+    savePreset: 'Guardar rutina',
+    selectPreset: 'Seleccionar rutina',
+    apply: 'Aplicar',
+    delete: 'Eliminar',
   },
   en: {
     appTitle: 'Training Timer',
@@ -769,5 +827,12 @@ const messages = {
     showSettings: 'Show settings',
     hideSettings: 'Hide settings',
     intervals: 'Intervals',
+    presets: 'Routines',
+    presetNamePlaceholder: 'e.g., HIIT 8x40/20',
+    savePreset: 'Save routine',
+    selectPreset: 'Select routine',
+    apply: 'Apply',
+    delete: 'Delete',
   },
 }
+
