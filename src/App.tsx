@@ -596,6 +596,18 @@ export default function App() {
     setPresetName(p?.name ?? '')
   }, [selectedPresetId, presets])
 
+  function presetSummary(p: Preset) {
+    const s = p.settings
+    const parts: string[] = []
+    if (s.warmupSec > 0) parts.push(`${t('warmup')}: ${fmt(s.warmupSec)}`)
+    const workRest = s.restSec > 0 ? `${fmt(s.workSec)}/${fmt(s.restSec)}` : fmt(s.workSec)
+    if (s.intervals > 0) parts.push(`${s.intervals}× ${workRest}`)
+    if (s.cooldownSec > 0) parts.push(`${t('cooldown')}: ${fmt(s.cooldownSec)}`)
+    const total = fmt(totalDuration(s))
+    parts.push(`${t('totalEstimated')}: ${total}`)
+    return parts.join(' • ')
+  }
+
   return (
     <div className="container">
       <div className="header">
@@ -670,8 +682,11 @@ export default function App() {
               {presets.length > 0 && (
                 <div className="grid" style={{ gap: 8 }}>
                   {presets.map(p => (
-                    <div key={p.id} className="row" style={{ justifyContent: 'space-between' }}>
-                      <div>{p.name}</div>
+                    <div key={p.id} className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div>{p.name}</div>
+                        <div className="subtle" style={{ fontSize: 12 }}>{presetSummary(p)}</div>
+                      </div>
                       <div className="row">
                         <button className="primary" onClick={() => openPresetById(p.id)} aria-label={t('openPreset')} title={t('openPreset')}>
                           <Icon name="open" />
