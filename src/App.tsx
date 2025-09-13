@@ -543,6 +543,14 @@ export default function App() {
     setPresetName('')
     setEditingPreset(false)
   }
+  function deletePresetById(id: string) {
+    setPresets(list => list.filter(p => p.id !== id))
+    if (selectedPresetId === id) {
+      setSelectedPresetId('')
+      setPresetName('')
+      setEditingPreset(false)
+    }
+  }
 
   function startEditPreset() {
     if (!selectedPresetId) return
@@ -562,9 +570,10 @@ export default function App() {
     setEditingPreset(false)
   }
 
-  function openSelectedPreset() {
-    const p = presets.find(x => x.id === selectedPresetId)
+  function openPresetById(id: string) {
+    const p = presets.find(x => x.id === id)
     if (!p) return
+    setSelectedPresetId(p.id)
     setPresetName(p.name)
     setSettings(p.settings)
     setEditingPreset(true)
@@ -655,16 +664,27 @@ export default function App() {
           {presetStep === 'chooser' ? (
             <div className="grid" style={{ gap: 12 }}>
               <Section title={t('presets')} subtitle={t('chooseAction')} />
-              <div className="row" style={{ gap: 8 }}>
-                <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)} aria-label={t('selectPreset')}>
-                  <option value="">{t('selectPreset')}</option>
+              {presets.length === 0 && (
+                <div className="subtle">{t('noPresets')}</div>
+              )}
+              {presets.length > 0 && (
+                <div className="grid" style={{ gap: 8 }}>
                   {presets.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <div key={p.id} className="row" style={{ justifyContent: 'space-between' }}>
+                      <div>{p.name}</div>
+                      <div className="row">
+                        <button className="primary" onClick={() => openPresetById(p.id)} aria-label={t('openPreset')} title={t('openPreset')}>
+                          <Icon name="open" />
+                        </button>
+                        <button className="danger" onClick={() => deletePresetById(p.id)} aria-label={t('delete')} title={t('delete')}>
+                          <Icon name="trash" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
-                </select>
-                <button onClick={openSelectedPreset} disabled={!selectedPresetId} className="primary" aria-label={t('openPreset')} title={t('openPreset')}>
-                  <Icon name="open" />
-                </button>
+                </div>
+              )}
+              <div className="row" style={{ justifyContent: 'flex-end' }}>
                 <button onClick={newPreset} aria-label={t('newPreset')} title={t('newPreset')}>
                   <Icon name="plus" />
                 </button>
@@ -720,18 +740,6 @@ export default function App() {
                   </select>
                 </div>
                 {/* Idioma: oculto por ahora */}
-                {editorMode === 'open' && presets.length > 0 && (
-                  <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-                    <select style={{ flex: 1, minWidth: 160 }} value={selectedPresetId} onChange={e => setSelectedPresetId(e.target.value)} aria-label={t('selectPreset')}>
-                      {presets.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                    <button className="danger" onClick={deletePreset} disabled={!selectedPresetId} aria-label={t('delete')} title={t('delete')}>
-                      <Icon name="trash" />
-                    </button>
-                  </div>
-                )}
               </div>
             </>
           )}
@@ -928,6 +936,7 @@ const messages = {
     openPreset: 'Abrir rutina',
     newPreset: 'Nueva rutina',
     back: 'Volver',
+    noPresets: 'No hay rutinas guardadas',
     apply: 'Aplicar',
     delete: 'Eliminar',
     rename: 'Renombrar',
@@ -980,6 +989,7 @@ const messages = {
     openPreset: 'Open routine',
     newPreset: 'New routine',
     back: 'Back',
+    noPresets: 'No routines saved',
     apply: 'Apply',
     delete: 'Delete',
     rename: 'Rename',
